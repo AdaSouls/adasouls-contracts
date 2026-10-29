@@ -12,8 +12,9 @@ remappings = [
   "forge-std/=lib/forge-std/src/",
   # Smooth Crypto Lib imports itself as @solidity/.
   "@solidity/=lib/crypto-lib/src/",
+  "@safe/=lib/safe-smart-account/contracts/",
 ]
-fs_permissions = [{ access = "read", path = "./spike" }]
+fs_permissions = [{ access = "read", path = "./spike" }, { access = "read", path = "./test/vectors" }]
 
 [profile.osaka]
 evm_version = "osaka"

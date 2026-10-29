@@ -83,13 +83,18 @@ each address depends only on the bytecode and a salt:
    version gets a new salt and a new address; nothing is upgraded in place.
 
 ```bash
+forge build --force   # from scratch: a stale artifact would give another address
 forge script script/Deploy.s.sol --rpc-url <chain RPC> --broadcast --account <your cast wallet>
 ```
+
+The address this commit deploys to is in `script/module-address.txt`.
 
 Any funded account works, for gas only. Running it where the module is
 already deployed changes nothing. `script/check-deterministic.sh` (also in
 CI) proves this on two local chains: different chain ids and different
-accounts give the same address, and a second run is a no-op.
+accounts give the same address, a second run is a no-op, and the address
+is the committed one. A change to the module's code or compiler settings
+changes it; that PR updates `script/module-address.txt`.
 
 The address depends on the exact bytecode. Deploy only from an audited,
 tagged commit, with the default profile; any change to the code or the

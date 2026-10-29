@@ -42,3 +42,9 @@ jobs:
         run: forge test -vvv
         env:
           FOUNDRY_PROFILE: osaka
+
+      # Same module address on two chains from two accounts, and a re-run is a no-op (local anvil only).
+      - name: Check the deployment is deterministic
+        run: ./script/check-deterministic.sh
+        env:
+          FOUNDRY_PROFILE: default

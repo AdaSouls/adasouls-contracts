@@ -1,13 +1,12 @@
 # adasouls-contracts
 
-On-chain contracts for AdaSouls. The first is planned: a Safe module that
-pays out only what AdaSouls authorized, so an agent can't make a payment
-on-chain that AdaSouls didn't authorize. Design note:
+On-chain contracts for AdaSouls. The first: a Safe module that pays out
+only what AdaSouls authorized, so an agent can't make a payment on-chain
+that AdaSouls didn't authorize. Design note:
 https://claude.ai/artifact/EAvZ7VQunmxVJaNCUDrmFb
 
-**Status: spike only.** Nothing here is deployable. `src/spike/` holds the
-gas measurements that chose the signing key; the module itself isn't
-written yet.
+**Status: written and tested, not audited, not deployed.** Don't put real
+funds behind it until it is audited.
 
 ## The rule these contracts keep
 
@@ -27,11 +26,44 @@ AdaSouls never holds a key that moves money (adasouls-api README,
 
 | Path | What |
 | --- | --- |
+| `src/AdaSoulsPaymentModule.sol` | The module |
+| `src/Ed25519Key.sol` | An Ed25519 public key in the verifier's form, from the public key alone |
+| `test/AdaSoulsPaymentModule.t.sol` | The module against a real Safe v1.4.1 |
+| `test/AlmaCoreInterop.t.sol` | Same digest as alma-core, and its signature accepted (`test/vectors/`) |
+| `lib/safe-smart-account` | [Safe](https://github.com/safe-global/safe-smart-account) v1.4.1, for the tests |
 | `src/spike/SclEd25519Verifier.sol` | Ed25519 check with Smooth Crypto Lib, and the key setup from a public key alone |
 | `src/spike/Eip712Verifier.sol` | The fallback: secp256k1, EIP-712 |
 | `test/spike/Ed25519Gas.t.sol` | Correctness and gas |
 | `spike/` | Test vectors (`vectors.json`) and their generator |
 | `lib/crypto-lib` | [Smooth Crypto Lib](https://github.com/get-smooth/crypto-lib), pinned at `d714e98` |
+
+## The module
+
+One deployment per chain serves every Safe, with no admin and no upgrade.
+Each Safe's owners set it up with ordinary Safe transactions:
+
+1. `enableModule(module)` on the Safe.
+2. `setAgent(agent)`: the one address that may submit payments.
+3. `acceptKey(publicKey)`: an AdaSouls issuer key (raw Ed25519, 32 bytes).
+   AdaSouls announces a new key 30 days before it signs with it.
+4. `setCap(token, cap, period)`: at most `cap` per `period` seconds. A token
+   without a cap can't be paid at all, so this is also the token allowlist.
+
+The agent then calls `pay(authorization, publicKey, signature)` with what
+AdaSouls signed (`signPaymentAuthorization` in alma-core). It pays only if
+every check passes: the Safe's agent is calling, the chain and module
+match, the authorization hasn't expired, its nonce is unused, the key is
+accepted, the signature is valid and the cap has room. The nonce and the
+spending are recorded before the Safe is called. Then the Safe transfers
+exactly that amount of that token to that address, and `Paid` is emitted
+for adasouls-worker to match.
+
+Owners can stop the agent (`setAgent(address(0))`), drop a key, set a
+token's cap to 0, or disable the module at any time, and they can always
+move funds directly.
+
+Gas, through a real Safe, under Osaka rules: `pay` costs about 595k (about
+$0.008 at 0.006 gwei); `acceptKey` costs about 147k, once per key per Safe.
 
 ## Running
 
@@ -70,16 +102,24 @@ $0.007 per payment. So:
 - **Interoperable with KMS.** The vectors are signed by Node's RFC 8032
   Ed25519, the scheme of AWS KMS `ED25519_SHA_512`.
 
-Not measured yet: the Safe module call, the token transfer, and Base's L1
-data fee.
+The full module call, through a real Safe, is measured above. Not measured:
+Base's L1 data fee.
 
 ## Next
 
-1. Confirm what the Veridise audit of Smooth Crypto Lib covered: commit and
+1. Deterministic deployment that anyone can run, with no AdaSouls key: CREATE2
+   for Smooth Crypto Lib's `SCL_EIP6565` library (the module links to it),
+   then for the module.
+2. Confirm what the Veridise audit of Smooth Crypto Lib covered: commit and
    files, `libSCL_EIP6565` in particular.
-2. alma-core: the `alma-payment-authorization/1` statement and its digest.
-3. The module (`src/`): authorization checks, nonce, expiry, per-period
-   cap, owner-managed accepted keys, deployment without an AdaSouls key.
-4. External audit before any mainnet funds.
+3. External audit of this repo (the module and `Ed25519Key`) before any
+   mainnet funds.
+
+Known limits, for the audit:
+- Smooth Crypto Lib notes 16 weak (small-order) keys its verifier doesn't
+  handle. Keys are accepted by each Safe's owners, and AdaSouls' key isn't
+  one of them.
+- A fee-on-transfer token delivers less than the authorized amount; owners
+  choose which tokens get a cap.
 
 Branch from `develop`; changes land through pull requests.

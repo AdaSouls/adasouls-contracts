@@ -16,6 +16,10 @@ remappings = [
 ]
 fs_permissions = [{ access = "read", path = "./spike" }, { access = "read", path = "./test/vectors" }]
 
+# Deterministic deployment (script/Deploy.s.sol): linked libraries go through the CREATE2 factory
+# with this salt. Addresses depend on the exact bytecode, so deploy only with the default profile.
+create2_library_salt = "0x0000000000000000000000000000000000000000000000000000000000000000"
+
 [profile.osaka]
 evm_version = "osaka"
 

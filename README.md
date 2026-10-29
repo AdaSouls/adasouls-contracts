@@ -34,6 +34,8 @@ AdaSouls never holds a key that moves money (adasouls-api README,
 | `src/spike/SclEd25519Verifier.sol` | Ed25519 check with Smooth Crypto Lib, and the key setup from a public key alone |
 | `src/spike/Eip712Verifier.sol` | The fallback: secp256k1, EIP-712 |
 | `test/spike/Ed25519Gas.t.sol` | Correctness and gas |
+| `script/Deploy.s.sol` | Deterministic deployment (see "Deploying") |
+| `script/check-deterministic.sh` | Proves it on two local chains |
 | `spike/` | Test vectors (`vectors.json`) and their generator |
 | `lib/crypto-lib` | [Smooth Crypto Lib](https://github.com/get-smooth/crypto-lib), pinned at `d714e98` |
 
@@ -64,6 +66,35 @@ move funds directly.
 
 Gas, through a real Safe, under Osaka rules: `pay` costs about 595k (about
 $0.008 at 0.006 gwei); `acceptKey` costs about 147k, once per key per Safe.
+
+## Deploying
+
+The module deploys to the same address on every chain, from any account.
+AdaSouls holds no deployer key, and nobody needs one in particular.
+
+Both deployments go through the CREATE2 factory that already exists at
+`0x4e59b44847b379578588920cA78FbF26c0B4956C` on Base and most EVM chains, so
+each address depends only on the bytecode and a salt:
+
+1. Smooth Crypto Lib's `SCL_EIP6565`, which the module links to. Foundry
+   deploys it through the factory itself (`create2_library_salt` in
+   `foundry.toml`), and skips it if someone already did.
+2. The module, with the salt `keccak256("adasouls-payment-module/1")`. A new
+   version gets a new salt and a new address; nothing is upgraded in place.
+
+```bash
+forge script script/Deploy.s.sol --rpc-url <chain RPC> --broadcast --account <your cast wallet>
+```
+
+Any funded account works, for gas only. Running it where the module is
+already deployed changes nothing. `script/check-deterministic.sh` (also in
+CI) proves this on two local chains: different chain ids and different
+accounts give the same address, and a second run is a no-op.
+
+The address depends on the exact bytecode. Deploy only from an audited,
+tagged commit, with the default profile; any change to the code or the
+compiler settings gives a different address. Until that tag exists, no
+address is final, and none should be published.
 
 ## Running
 
@@ -107,12 +138,9 @@ Base's L1 data fee.
 
 ## Next
 
-1. Deterministic deployment that anyone can run, with no AdaSouls key: CREATE2
-   for Smooth Crypto Lib's `SCL_EIP6565` library (the module links to it),
-   then for the module.
-2. Confirm what the Veridise audit of Smooth Crypto Lib covered: commit and
+1. Confirm what the Veridise audit of Smooth Crypto Lib covered: commit and
    files, `libSCL_EIP6565` in particular.
-3. External audit of this repo (the module and `Ed25519Key`) before any
+2. External audit of this repo (the module and `Ed25519Key`) before any
    mainnet funds.
 
 Known limits, for the audit:

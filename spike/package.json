@@ -1,0 +1,12 @@
+{
+  "name": "adasouls-contracts-spike",
+  "private": true,
+  "type": "module",
+  "description": "Generates the gas spike's test vectors (spike/vectors.json).",
+  "scripts": {
+    "vectors": "node gen-vectors.mjs vectors.json"
+  },
+  "dependencies": {
+    "viem": "2.57.2"
+  }
+}

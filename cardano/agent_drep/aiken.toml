@@ -1,0 +1,18 @@
+name = "adasouls/agent_drep"
+version = "0.0.0"
+compiler = "v1.1.24"
+plutus = "v3"
+license = "Apache-2.0"
+description = "Aiken contracts for project 'adasouls/agent_drep'"
+
+[repository]
+user = "adasouls"
+project = "agent_drep"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "v4.0.0"
+source = "github"
+
+[config]

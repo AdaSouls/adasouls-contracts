@@ -38,6 +38,7 @@ AdaSouls never holds a key that moves money (adasouls-api README,
 | `script/check-deterministic.sh` | Proves it on two local chains |
 | `spike/` | Test vectors (`vectors.json`) and their generator |
 | `lib/crypto-lib` | [Smooth Crypto Lib](https://github.com/get-smooth/crypto-lib), pinned at `d714e98` |
+| `cardano/agent_drep` | **Cardano**: a script DRep with a mandate (Aiken). The agent casts only the votes a human signed, once, before they expire; the human can always vote, register and rotate keys. See [its README](cardano/agent_drep/README.md) |
 
 ## The module
 
